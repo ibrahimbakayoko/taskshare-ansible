@@ -1,0 +1,99 @@
+---
+- name: Déployer SonarQube sans installer Java
+  hosts: cicdhub
+  become: yes
+
+  vars:
+    sonarqube_version: "9.9.0.65466"
+    sonarqube_url: "https://binaries.sonarsource.com/Distribution/sonarqube"
+    sonarqube_home: "/opt/sonarqube"
+
+  tasks:
+    - name: Mettre à jour les paquets
+      apt:
+        update_cache: yes
+
+    - name: Installer unzip
+      apt:
+        name: unzip
+        state: present
+
+    - name: Créer l'utilisateur sonarqube
+      user:
+        name: sonarqube
+        system: yes
+        shell: /bin/false
+        create_home: no
+
+    - name: Créer un dossier pour SonarQube
+      file:
+        path: "{{ sonarqube_home }}"
+        state: directory
+        owner: sonarqube
+        group: sonarqube
+        mode: '0755'
+
+    - name: Télécharger SonarQube
+      get_url:
+        url: "{{ sonarqube_url }}/sonarqube-{{ sonarqube_version }}.zip"
+        dest: /tmp/sonarqube.zip
+
+    - name: Vérifier l'intégrité du fichier SonarQube
+      stat:
+        path: /tmp/sonarqube.zip
+      register: sonarqube_file
+    - fail:
+        msg: "Le fichier SonarQube n'a pas été téléchargé correctement"
+      when: not sonarqube_file.stat.exists
+
+    - name: Extraire SonarQube
+      unarchive:
+        src: /tmp/sonarqube.zip
+        dest: "{{ sonarqube_home }}"
+        remote_src: yes
+
+    - name: Configurer les permissions pour l'utilisateur sonarqube
+      file:
+        path: "{{ sonarqube_home }}/sonarqube-{{ sonarqube_version }}"
+        state: directory
+        owner: sonarqube
+        group: sonarqube
+        mode: '0755'
+        recurse: yes
+
+    - name: Créer un lien symbolique vers la version de SonarQube
+      file:
+        src: "{{ sonarqube_home }}/sonarqube-{{ sonarqube_version }}"
+        dest: "{{ sonarqube_home }}/current"
+        state: link
+        force: yes
+
+    - name: Créer un service systemd pour SonarQube
+      copy:
+        dest: /etc/systemd/system/sonarqube.service
+        content: |
+          [Unit]
+          Description=SonarQube service
+          After=network.target
+
+          [Service]
+          Type=forking
+          ExecStart={{ sonarqube_home }}/current/bin/linux-x86-64/sonar.sh start
+          ExecStop={{ sonarqube_home }}/current/bin/linux-x86-64/sonar.sh stop
+          User=sonarqube
+          Group=sonarqube
+          Restart=always
+          LimitNOFILE=65536
+
+          [Install]
+          WantedBy=multi-user.target
+
+    - name: Recharger systemd
+      systemd:
+        daemon_reload: yes
+
+    - name: Démarrer et activer SonarQube
+      systemd:
+        name: sonarqube
+        enabled: yes
+        state: started

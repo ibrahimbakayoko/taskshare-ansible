@@ -1,0 +1,65 @@
+---
+- name: Déploiement de kube-prometheus-stack avec Grafana en LoadBalancer
+  hosts: cicdhub
+  become: true
+
+  vars:
+    helm_repo_name: prometheus-community
+    helm_repo_url: https://prometheus-community.github.io/helm-charts
+    release_name: kube-prometheus-stack
+    release_namespace: monitoring
+    chart_name: prometheus-community/kube-prometheus-stack
+    chart_version: "56.6.2"  # ou adapte à la version souhaitée
+
+  tasks:
+
+    - name: Installer pip3 si absent
+      apt:
+        name: python3-pip
+        state: present
+
+    - name: Installer la lib Python 'kubernetes'
+      apt:
+        name: python3-kubernetes
+        state: present
+
+    - name: Vérifier si Helm est installé
+      command: helm version
+      register: helm_check
+      ignore_errors: true
+
+    - name: Installer Helm si non présent
+      shell: curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+      when: helm_check.rc != 0
+
+    - name: Ajouter le repo Helm Prometheus Community
+      kubernetes.core.helm_repository:
+        name: "{{ helm_repo_name }}"
+        repo_url: "{{ helm_repo_url }}"
+
+    - name: Mettre à jour les dépôts Helm
+      command: helm repo update
+
+    - name: Créer le namespace monitoring s'il n'existe pas
+      kubernetes.core.k8s:
+        api_version: v1
+        kind: Namespace
+        name: "{{ release_namespace }}"
+        state: present
+
+    - name: Déployer kube-prometheus-stack avec valeurs personnalisées
+      kubernetes.core.helm:
+        name: "{{ release_name }}"
+        chart_ref: "{{ chart_name }}"
+        chart_version: "{{ chart_version }}"
+        release_namespace: "{{ release_namespace }}"
+        create_namespace: true
+        values:
+          grafana:
+            adminUser: admin
+            adminPassword: admin
+            service:
+              type: LoadBalancer
+          prometheus:
+            service:
+              type: ClusterIP

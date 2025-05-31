@@ -1,0 +1,58 @@
+---
+- name: Installer et configurer SonarQube Scanner sur Debian 12 avec Java 17
+  hosts: cicdhub
+  become: true
+  vars:
+    sonar_scanner_version: "4.8.0.2856"
+    sonar_scanner_download_url: "https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-{{ sonar_scanner_version }}-linux.zip"
+    sonar_scanner_dir: "/opt/sonar-scanner"
+    java_package: "openjdk-17-jdk"  # Vous pouvez ignorer cette ligne si Java 17 est déjà installé
+
+  tasks:
+    - name: Mettre à jour les paquets
+      apt:
+        update_cache: yes
+        upgrade: yes
+
+    - name: Installer unzip (si ce n'est pas déjà installé)
+      apt:
+        name: unzip
+        state: present
+
+    - name: Télécharger SonarQube Scanner
+      get_url:
+        url: "{{ sonar_scanner_download_url }}"
+        dest: "/tmp/sonar-scanner-cli-{{ sonar_scanner_version }}-linux.zip"
+        mode: '0644'
+
+    - name: Extraire le fichier zip de SonarQube Scanner
+      unarchive:
+        src: "/tmp/sonar-scanner-cli-{{ sonar_scanner_version }}-linux.zip"
+        dest: "{{ sonar_scanner_dir }}"
+        remote_src: yes
+
+    - name: Créer un lien symbolique pour sonar-scanner dans /usr/local/bin
+      file:
+        src: "{{ sonar_scanner_dir }}/sonar-scanner-{{ sonar_scanner_version }}-linux/bin/sonar-scanner"
+        dest: "/usr/local/bin/sonar-scanner"
+        state: link
+
+    - name: Configurer les variables d'environnement pour SonarQube Scanner
+      lineinfile:
+        path: /etc/profile
+        line: 'export PATH=$PATH:{{ sonar_scanner_dir }}/sonar-scanner-{{ sonar_scanner_version }}-linux/bin'
+        create: yes
+
+    - name: Appliquer les changements de profil
+      shell: "bash -c 'source /etc/profile'"
+      become: false
+
+    - name: Vérifier l'installation de SonarQube Scanner
+      command: sonar-scanner --version
+      register: sonar_scanner_version_check
+      failed_when: sonar_scanner_version_check.rc != 0
+      changed_when: false
+
+    - name: Afficher la version de SonarQube Scanner installée
+      debug:
+        msg: "SonarQube Scanner version: {{ sonar_scanner_version_check.stdout }}"

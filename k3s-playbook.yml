@@ -1,0 +1,32 @@
+---
+- name: Install required packages (Debian)
+  hosts: all
+  become: yes
+  tasks:
+    - name: Update package list
+      ansible.builtin.apt:
+        update_cache: yes
+
+    - name: Install curl
+      ansible.builtin.apt:
+        name: curl
+        state: present
+
+- name: Install K3s on Master
+  hosts: cicdhub
+  become: yes
+  tasks:
+    - name: Download and install K3s
+      ansible.builtin.shell: curl -sfL https://get.k3s.io | sh -
+
+    - name: Get Node Token
+      ansible.builtin.shell: cat /var/lib/rancher/k3s/server/node-token
+      register: node_token
+
+- name: Install K3s on Worker
+  hosts: monitoring
+  become: yes
+  tasks:
+    - name: Download and install K3s with Master token
+      ansible.builtin.shell: >
+        curl -sfL https://get.k3s.io | K3S_URL=https://{{ hostvars['cicdhub']['ansible_host'] }}:6443 K3S_TOKEN={{ hostvars['cicdhub']['node_token'].stdout }} sh -

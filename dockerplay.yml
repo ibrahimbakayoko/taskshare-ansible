@@ -1,0 +1,54 @@
+---
+- name: Installer Docker sur une VM Debian
+  hosts: all
+  become: yes
+
+  tasks:
+    - name: Mettre à jour les paquets
+      apt:
+        update_cache: yes
+
+    - name: Installer les dépendances nécessaires
+      apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - software-properties-common
+        state: present
+
+    - name: Ajouter la clé GPG officielle de Docker
+      apt_key:
+        url: https://download.docker.com/linux/debian/gpg
+        state: present
+
+    - name: Ajouter le dépôt Docker
+      apt_repository:
+        repo: "deb https://download.docker.com/linux/debian bookworm stable"
+        state: present
+        filename: docker
+
+    - name: Installer Docker
+      apt:
+        name: docker-ce
+        state: present
+
+    - name: Démarrer et activer Docker
+      service:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Ajouter l'utilisateur actuel au groupe Docker
+      user:
+        name: "{{ ansible_user_id }}"
+        groups: docker
+        append: yes
+
+    - name: Vérifier la version de Docker
+      command: docker --version
+      register: docker_version
+
+    - name: Afficher la version de Docker
+      debug:
+        msg: "Docker installé : {{ docker_version.stdout }}"

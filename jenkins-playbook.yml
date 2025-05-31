@@ -1,0 +1,49 @@
+---
+- name: Installer Jenkins sur Debian 12
+  hosts: cicdhub
+  become: yes
+
+  tasks:
+    - name: Mettre à jour les paquets
+      apt:
+        update_cache: yes
+
+    - name: Installer Java (OpenJDK 17)
+      apt:
+        name: openjdk-17-jdk
+        state: present
+
+    - name: Ajouter la clé GPG de Jenkins
+      apt_key:
+        url: https://pkg.jenkins.io/debian-stable/jenkins.io.key
+        state: present
+
+    - name: Ajouter le dépôt Jenkins
+      apt_repository:
+        repo: "deb https://pkg.jenkins.io/debian-stable binary/"
+        state: present
+        filename: jenkins
+
+    - name: Mettre à jour les paquets après ajout du dépôt
+      apt:
+        update_cache: yes
+
+    - name: Installer Jenkins
+      apt:
+        name: jenkins
+        state: present
+
+    - name: Démarrer et activer Jenkins
+      systemd:
+        name: jenkins
+        state: started
+        enabled: yes
+
+    - name: Afficher le mot de passe initial de Jenkins
+      command: cat /var/lib/jenkins/secrets/initialAdminPassword
+      register: jenkins_password
+      changed_when: false
+
+    - name: Mot de passe initial de Jenkins
+      debug:
+        msg: "Mot de passe initial : {{ jenkins_password.stdout }}"
