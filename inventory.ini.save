@@ -1,0 +1,14 @@
+(taskshareenv) ansible@ansiblemaster:~/automatisation/taskshare-ansible$ ls
+README.md  dockerplay.yml  grafana-prometheus-playbook.yml  inventory.ini  jenkins-playbook.yml  k3s-playbook.yml  requirements.yml  sonarqube-playbook.yml  sonarqube-scanner.yml
+(taskshareenv) ansible@ansiblemaster:~/automatisation/taskshare-ansible$ code inventory.ini 
+bash: code: command not found
+(taskshareenv) ansible@ansiblemaster:~/automatisation/taskshare-ansible$ [all]
+cicdhub ansible_host=192.168.27.66 ansible_user=root
+monitoring ansible_host=192.168.27.69 ansible_user=root
+#devopsmaster ansible_host=192.168.27.63 ansible_user=root
+
+[cicdhub]
+cicdhub ansible_host=192.168.27.66 ansible_user=root
+
+[monitoring]
+monitoring ansible_host=192.168.27.69 ansible_user=root

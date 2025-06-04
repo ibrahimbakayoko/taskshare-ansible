@@ -13,19 +13,18 @@
         name: openjdk-17-jdk
         state: present
 
-    - name: Télécharger la clé GPG officielle de Jenkins
-      ansible.builtin.get_url:
-        url: https://pkg.jenkins.io/debian/jenkins.io-2023.key
-        dest: /usr/share/keyrings/jenkins-keyring.asc
-        mode: '0644'
+    - name: Ajouter la clé GPG de Jenkins
+      apt_key:
+        url: https://pkg.jenkins.io/debian-stable/jenkins.io.key
+        state: present
 
-    - name: Ajouter le dépôt Jenkins (compatible Debian 12)
-      ansible.builtin.apt_repository:
-        repo: "deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] https://pkg.jenkins.io/debian binary/"
+    - name: Ajouter le dépôt Jenkins
+      apt_repository:
+        repo: "deb https://pkg.jenkins.io/debian-stable binary/"
         state: present
         filename: jenkins
 
-    - name: Mettre à jour la liste des paquets après ajout du dépôt
+    - name: Mettre à jour les paquets après ajout du dépôt
       apt:
         update_cache: yes
 
@@ -40,13 +39,6 @@
         state: started
         enabled: yes
 
-    - name: Attendre que Jenkins crée le mot de passe initial
-      wait_for:
-        path: /var/lib/jenkins/secrets/initialAdminPassword
-        state: present
-        delay: 5
-        timeout: 60
-
     - name: Afficher le mot de passe initial de Jenkins
       command: cat /var/lib/jenkins/secrets/initialAdminPassword
       register: jenkins_password
@@ -55,4 +47,3 @@
     - name: Mot de passe initial de Jenkins
       debug:
         msg: "Mot de passe initial : {{ jenkins_password.stdout }}"
-
