@@ -1,6 +1,6 @@
 ---
 - name: Déployer SonarQube sans installer Java
-  hosts: cicdhub
+  hosts: cicdorchestrator
   become: yes
 
   vars:

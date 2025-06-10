@@ -13,7 +13,7 @@
         state: present
 
 - name: Install K3s on Master
-  hosts: cicdhub
+  hosts: cicdorchestrator
   become: yes
   tasks:
     - name: Download and install K3s
@@ -24,9 +24,9 @@
       register: node_token
 
 - name: Install K3s on Worker
-  hosts: monitoring
+  hosts: monitoringhub
   become: yes
   tasks:
     - name: Download and install K3s with Master token
       ansible.builtin.shell: >
-        curl -sfL https://get.k3s.io | K3S_URL=https://{{ hostvars['cicdhub']['ansible_host'] }}:6443 K3S_TOKEN={{ hostvars['cicdhub']['node_token'].stdout }} sh -
+        curl -sfL https://get.k3s.io | K3S_URL=https://{{ hostvars['cicdorchestrator']['ansible_host'] }}:6443 K3S_TOKEN={{ hostvars['cicdorchestrator']['node_token'].stdout }} sh -

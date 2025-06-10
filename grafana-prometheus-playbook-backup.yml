@@ -36,13 +36,9 @@
       kubernetes.core.helm_repository:
         name: "{{ helm_repo_name }}"
         repo_url: "{{ helm_repo_url }}"
-      environment:
-        KUBECONFIG: /home/ansible/.kube/config
 
     - name: Mettre à jour les dépôts Helm
       command: helm repo update
-      environment:
-        KUBECONFIG: /home/ansible/.kube/config
 
     - name: Créer le namespace monitoring s'il n'existe pas
       kubernetes.core.k8s:
@@ -68,5 +64,3 @@
           prometheus:
             service:
               type: ClusterIP
-        kubeconfig: /home/ansible/.kube/config
-
